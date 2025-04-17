@@ -11,6 +11,21 @@ How have U.S. border crossings with Canada and Mexico evolved over time, and wha
 
 **Sub-Questions:** 1. How have crossing volumes changed from 1996 to the present across both borders? 2. Are there consistent seasonal or yearly trends? 3. Which states or specific ports account for the highest and lowest volumes? 4. Are certain regions more sensitive to changes than others, such as border tightening or travel bans? 5. How do crossing patterns differ by type (e.g., truck, rail, pedestrian, personal vehicle)? 6. What impact did specific nationwide or international events (e.g., 9/11, COVID-19, NAFTA revisions) have on crossing patterns? 7. Can we predict future crossing volumes based on historical trends or group ports/regions using clustering?
 
+**START OF DATA MANAGEMENT AND FILE LOADING**
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+border_data <- read_csv("Border.csv")
+glimpse(border_data)
+
+### Date clean
+border_clean <- border_data %>%
+  mutate(Date = my(Date))  # 'my' = month-year parser from lubridate
+
+```
+
 ------------------------------------------------------------------------
 
 # Jaime – Temporal Trends and Event Analysis
@@ -19,9 +34,76 @@ How have U.S. border crossings with Canada and Mexico evolved over time, and wha
 
 ```{r}
 
+#Analysing crossing values over time
+
+border_clean %>%
+  group_by(Date, Border, Measure) %>%
+  summarise(total = sum(Value), .groups = "drop")
+
+######################################################################################################################
+
+
+border_clean %>%
+  group_by(Date, Border, Measure) %>%
+  summarise(total = sum(Value), .groups = "drop") %>%
+  ggplot(aes(x = Date, y = total, color = Measure)) +
+  geom_line() +
+  facet_wrap(~ Border, scales = "free_y") +
+  labs(
+    title = "Crossing Types Over Time by Border",
+    x = "Date", y = "Total Crossings", color = "Type"
+  ) +
+  theme_minimal()
+
+######################################################################################################################
+
+```
+```{r}
+######################################################################################################################
+#Exploring seasonal or yearly patterns
+border_clean %>%
+  mutate(month = month(Date, label = TRUE)) %>%
+  group_by(month, Border) %>%
+  summarise(avg_crossings = mean(Value, na.rm = TRUE)) %>%
+  ggplot(aes(x = month, y = avg_crossings, fill = Border)) +
+  geom_col(position = "dodge") +
+  labs(title = "Average Crossings by Month (Seasonality)", y = "Avg Crossings") +
+  theme_minimal()
+######################################################################################################################
 ```
 
-Ben Mayer – Regional and Port-Level Analysis
+```{r}
+
+# Aggregate crossing totals by date and border
+border_clean %>%
+  group_by(Date, Border) %>%
+  summarise(total = sum(Value, na.rm = TRUE), .groups = "drop") %>%
+  ggplot(aes(x = Date, y = total, color = Border)) +
+  geom_line(size = 1.2) +
+  
+  # highlighting major events in the U.S.
+  geom_vline(xintercept = as.Date("2001-09-11"), linetype = "dashed", color = "red", size = 1) +
+  geom_vline(xintercept = as.Date("2020-03-01"), linetype = "dashed", color = "blue", size = 1) +
+  
+  
+  annotate("text", x = as.Date("2001-09-11"), y = 15000000, label = "9/11", color = "red", angle = 90, vjust = -0.4, hjust = 0.5, fontface = "bold") +
+  annotate("text", x = as.Date("2020-03-01"), y = 15000000, label = "COVID-19", color = "blue", angle = 90, vjust = -0.4, hjust = 0.5, fontface = "bold") +
+  
+
+  labs(
+    title = "U.S. Border Crossings Over Time (with Major Events)",
+    subtitle = "Dashed lines mark significant events: 9/11 and COVID-19",
+    x = "Date",
+    y = "Total Crossings",
+    color = "Border"
+  ) +
+  scale_y_continuous(labels = scales::comma) +
+  theme_minimal(base_size = 13)
+
+```
+
+
+# Ben Mayer – Regional and Port-Level Analysis
 
 Responsibilities:
 
@@ -49,7 +131,7 @@ Identify how crossing types respond to events
 
 (Optional) Forecast future crossing volumes
 
-Testing 123 
+Testing 123
 
 ```{r}
 
