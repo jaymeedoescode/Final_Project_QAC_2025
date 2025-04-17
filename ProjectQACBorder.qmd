@@ -74,6 +74,8 @@ border_clean %>%
 
 ```{r}
 
+######################################################################################################################
+
 # Aggregate crossing totals by date and border
 border_clean %>%
   group_by(Date, Border) %>%
@@ -100,7 +102,51 @@ border_clean %>%
   scale_y_continuous(labels = scales::comma) +
   theme_minimal(base_size = 13)
 
+
+######################################################################################################################
 ```
+
+```{r}
+
+######################################################################################################################
+#See if commercial vehicles were imapcted or just pedestrians entering the U.S.
+border_classified <- border_clean %>%
+  mutate(
+    TypeGroup = case_when(
+      str_detect(Measure, "Truck|Bus|Train|Rail") ~ "Commercial",
+      str_detect(Measure, "Pedestrian|Vehicle|Personal|Bicycl") ~ "Personal",
+      TRUE ~ "Other"
+    )
+  ) %>%
+  filter(TypeGroup != "Other")  # filter out junk or unclear categories
+
+border_classified %>%
+  group_by(Date, TypeGroup) %>%
+  summarise(total = sum(Value, na.rm = TRUE), .groups = "drop") %>%
+  ggplot(aes(x = Date, y = total, color = TypeGroup)) +
+  geom_line(size = 1.2) +
+  
+  # Major event lines
+  geom_vline(xintercept = as.Date("2001-09-11"), linetype = "dashed", color = "red", size = 1) +
+  geom_vline(xintercept = as.Date("2020-03-01"), linetype = "dashed", color = "blue", size = 1) +
+  
+  # Text labels for events
+  annotate("text", x = as.Date("2001-09-11"), y = 15000000, label = "9/11", color = "red", angle = 90, vjust = -0.4, hjust = 0.5, fontface = "bold") +
+  annotate("text", x = as.Date("2020-03-01"), y = 15000000, label = "COVID-19", color = "blue", angle = 90, vjust = -0.4, hjust = 0.5, fontface = "bold") +
+
+  labs(
+    title = "Border Crossings Over Time: Commercial vs Personal",
+    subtitle = "Note steep declines aligned with major national events",
+    x = "Date",
+    y = "Total Crossings",
+    color = "Crossing Type"
+  ) +
+  scale_y_continuous(labels = scales::comma) +
+  theme_minimal(base_size = 13)
+
+######################################################################################################################
+```
+
 
 
 # Ben Mayer – Regional and Port-Level Analysis
