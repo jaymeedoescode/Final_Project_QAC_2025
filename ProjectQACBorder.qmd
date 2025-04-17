@@ -26,6 +26,54 @@ border_clean <- border_data %>%
 
 ```
 
+*Variable names and data management*
+
+------------------------------------------------------------------------
+
+```{r}
+# RAW DATA: Read directly from the CSV
+#border_data           # Original dataset from 'Border.csv'
+
+######################################################################################################################
+
+#  CLEANED DATA: Converted 'Date' to proper Date object (month-year)
+#border_clean <- border_data %>%
+  #mutate(Date = lubridate::my(Date))
+
+
+######################################################################################################################
+# (from border_clean):
+# - Port Name     → Name of the border crossing port (chr)
+# - State         → U.S. state where the port is located (chr)
+# - Port Code     → Unique code assigned to the port (chr)
+# - Border        → Either 'US-Canada Border' or 'US-Mexico Border' (chr)
+# - Date          → Month-Year of the crossing (converted to Date)
+# - Measure       → Type of crossing (e.g., Trucks, Pedestrians, Vehicles) (chr)
+# - Value         → Number of crossings for that row (dbl)
+# - Latitude      → GPS latitude of the port (dbl)
+# - Longitude     → GPS longitude of the port (dbl)
+# - Point         → Geometry point (chr; can be used for mapping)
+
+# CLASSIFIED DATA: Tagged each crossing as 'Commercial' or 'Personal'
+#border_classified <- border_clean %>%
+  #mutate(TypeGroup = case_when(
+    #str_detect(Measure, "Truck|Bus|Train|Rail") ~ "Commercial",
+    #str_detect(Measure, "Pedestrian|Vehicle|Personal|Bicycl") ~ "Personal",
+    #TRUE ~ "Other"
+  #)) %>%
+  #filter(TypeGroup != "Other")
+
+######################################################################################################################
+
+#Other possible helper columns:
+# - month = lubridate::month(Date, label = TRUE)     # For seasonality
+# - year  = lubridate::year(Date)                    # For trends or filters
+
+#Tip: Use `glimpse(border_clean)` or `names(border_clean)` to re-check anytime
+
+```
+
+
 ------------------------------------------------------------------------
 
 # Jaime – Temporal Trends and Event Analysis
