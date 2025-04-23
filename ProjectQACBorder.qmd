@@ -4,7 +4,7 @@ format: html
 editor: visual
 ---
 
-# Introduction hello hello hi hi hi
+# Introduction hello hello hi hi hi my name ben 
 
 **Core Research Question:**\
 How have U.S. border crossings with Canada and Mexico evolved over time, and what do these patterns reveal about regional, economic, and policy-driven influences on cross-border mobility?
@@ -343,6 +343,7 @@ significant_measures <- test_summary %>%
 print(significant_measures)
 
 ```
+
 # Conclusion
 
 Summarize major findings from each section, compare insights across regions/types/time, and reflect on how this connects to broader patterns in mobility and policy.
