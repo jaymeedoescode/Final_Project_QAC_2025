@@ -17,6 +17,11 @@ How have U.S. border crossings with Canada and Mexico evolved over time, and wha
 library(dplyr)
 library(tidyverse)
 library(ggplot2)
+library(qacData)
+require(lubridate)
+require(dplyr)
+require(ggplot2)
+require(stringr)
 border_data <- read_csv("Border.csv")
 glimpse(border_data)
 
@@ -241,7 +246,7 @@ Use filtering, grouping, and plotting for geographic comparisons
 
 ```{r}
 
-BorderCrossing %>% 
+border_clean %>% 
   group_by(State) %>% 
   summarise(TotalCrossings=sum(Value)) -> BorderCrossing1
 
@@ -252,7 +257,7 @@ ggplot(data=BorderCrossing1)+
 ```
 
 ```{r}
-BorderCrossing %>% 
+border_clean %>% 
   group_by(Border) %>% 
   summarise(TotalCrossings=sum(Value)) -> BorderCrossing2
 
@@ -262,7 +267,7 @@ ggplot(data=BorderCrossing2)+
 ```
 
 ```{r}
-BorderCrossing %>% 
+border_clean %>% 
   group_by(Year, State) %>% 
   summarise(TotalCrossings=sum(Value)) -> BorderCrossing3
 
@@ -276,7 +281,7 @@ ggplot(data=BorderCrossing3)+
 ```
 
 ```{r}
-BorderCrossing %>% 
+border_clean %>% 
   group_by(Measure, State) %>% 
   summarise(TotalCrossings=sum(Value)) -> BorderCrossing4
 
