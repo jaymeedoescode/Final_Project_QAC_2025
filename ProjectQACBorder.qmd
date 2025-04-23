@@ -228,9 +228,91 @@ Identify how crossing types respond to events
 Testing 123
 
 ```{r}
+# Univariate Analysis: Percentage of total traffic volume by crossing type
+univariate_data <- border_clean %>%
+  group_by(Measure) %>%
+  summarise(Total_Value = sum(Value, na.rm = TRUE)) %>%
+  mutate(Percentage = Total_Value / sum(Total_Value) * 100)
+
+# Bar plot for percentage analysis
+ggplot(univariate_data, aes(x = Measure, y = Percentage, fill = Measure)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Percentage of Total Traffic Volume by Crossing Type", 
+       x = "Crossing Type", y = "Percentage of Total Volume") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1))
+
+# Statistical Test: ANOVA to determine if there are significant differences in traffic volume by crossing type
+anova_result <- aov(Value ~ Measure, data = border_clean)
+summary(anova_result)
 
 ```
 
+```{r}
+# Filter for one year before and after March 2020
+border_periods <- border_clean %>%
+  filter(Date >= as.Date("2019-03-01") & Date < as.Date("2021-03-01")) %>%
+  mutate(Period = case_when(
+    Date < as.Date("2020-03-01") ~ "Year Before Mar 2020",
+    TRUE ~ "Year After Mar 2020"
+  ))
+
+# Summarize average monthly crossings by Measure and Period
+average_summary <- border_periods %>%
+  group_by(Measure, Period) %>%
+  summarise(Average_Monthly = mean(Value, na.rm = TRUE), .groups = 'drop')
+
+# Plot comparison of average monthly crossings
+comparison_plot <- ggplot(average_summary, aes(x = Measure, y = Average_Monthly, fill = Period)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme_minimal() +
+  labs(title = "Average Monthly Crossings by Type (Year Before vs. After March 2020)",
+       x = "Crossing Type",
+       y = "Average Monthly Crossings") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Print the comparison plot
+print(comparison_plot)
+
+# Prepare monthly totals per period
+monthly_totals <- border_periods %>%
+  mutate(Month = floor_date(Date, "month")) %>%
+  group_by(Measure, Period, Month) %>%
+  summarise(Monthly_Total = sum(Value, na.rm = TRUE), .groups = 'drop')
+
+# Get unique Measures
+measures <- unique(monthly_totals$Measure)
+```
+
+```{r}
+# Run t-tests for each Measure
+test_results <- lapply(measures, function(m) {
+  test_data <- monthly_totals %>% filter(Measure == m)
+  t_out <- t.test(Monthly_Total ~ Period, data = test_data)
+  data.frame(
+    Measure = m,
+    Before_Mean = t_out$estimate[1],
+    After_Mean = t_out$estimate[2],
+    P_Value = t_out$p.value
+  )
+})
+
+# Combine results into a single data frame
+test_summary <- do.call(rbind, test_results)
+
+# Print the test summary
+print(test_summary)
+
+# Grab significant results
+significant_measures <- test_summary %>%
+  filter(P_Value < 0.05) %>%
+  pull(Measure)
+
+# Print only the statistically significant comparisons
+print(significant_measures)
+
+```
 # Conclusion
 
 Summarize major findings from each section, compare insights across regions/types/time, and reflect on how this connects to broader patterns in mobility and policy.
