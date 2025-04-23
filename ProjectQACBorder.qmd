@@ -4,7 +4,7 @@ format: html
 editor: visual
 ---
 
-# Introduction
+# Introduction hello hello
 
 **Core Research Question:**\
 How have U.S. border crossings with Canada and Mexico evolved over time, and what do these patterns reveal about regional, economic, and policy-driven influences on cross-border mobility?
@@ -73,7 +73,6 @@ border_clean <- border_data %>%
 
 ```
 
-
 ------------------------------------------------------------------------
 
 ## Data Managment
@@ -138,6 +137,7 @@ border_clean %>%
 ######################################################################################################################
 
 ```
+
 ```{r}
 ######################################################################################################################
 #Exploring seasonal or yearly patterns
@@ -226,8 +226,6 @@ border_classified %>%
 
 ######################################################################################################################
 ```
-
-
 
 # Ben Mayer – Regional and Port-Level Analysis
 
