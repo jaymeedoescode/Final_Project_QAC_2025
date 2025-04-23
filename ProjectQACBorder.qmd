@@ -76,6 +76,38 @@ border_clean <- border_data %>%
 
 ------------------------------------------------------------------------
 
+## Data Managment
+
+```{r}
+library(qacData)
+require(lubridate)
+require(dplyr)
+require(ggplot2)
+require(stringr)
+
+BorderCrossing <- read_csv("~/Documents/Exploratory Data Anaylsis/Border_Crossing_Entry_Data.csv")
+
+BorderCrossing$Month <- substr(BorderCrossing$Date, 1,3)
+BorderCrossing$Year <- substr(BorderCrossing$Date, 5,8)
+
+BorderCrossing$Year <- as.numeric(BorderCrossing$Year)
+
+BorderCrossing %>% 
+  mutate(Monthn=case_when(Month=="Jan" ~ 1, Month=="Feb" ~2, Month=="Mar" ~3, Month=="Apr" ~4, Month=="May"~5, Month=="June" ~ 6, Month=="Jul" ~ 7, Month=="Aug" ~8, Month=="Sep" ~9, Month=="Oct" ~10, Month=="Nov"~11, Month=="Dec" ~ 12)) -> BorderCrossing
+
+
+BorderCrossing %>% 
+  mutate(Season=case_when(Monthn >2 & Monthn < 6 ~ "Spring", Monthn >5 & Month <9 ~ "Summer", Monthn >8 & Monthn <12 ~ "Fall", Monthn >11 | Monthn <3 ~ "Winter")) -> BorderCrossing
+
+BorderCrossing %>%
+  mutate(Date = make_date(Year, Monthn)) -> BorderCrossing
+
+BorderCrossing %>% 
+  mutate(format(Date, "%m-%Y")) -> BorderCrossing
+
+names(BorderCrossing) <- c("PortName", "State", "PortCode","Border", "Dates", "Measure", "Value", "Latitude", "Longitude", "Point", "Months", "Year", "Month", "Season", "Date") 
+```
+
 # Jaime – Temporal Trends and Event Analysis
 
 *Responsibilities:* - Analyze crossing volumes over time - Explore seasonal or yearly patterns - Investigate alignment with major events (9/11, COVID-19, etc.) - Use time series plots, trends, and event markers
@@ -199,7 +231,7 @@ border_classified %>%
 
 # Ben Mayer – Regional and Port-Level Analysis
 
-Responsibilities:
+Responsibilities: hi my name is ben i made this code
 
 Analyze crossing volume by state and port
 
