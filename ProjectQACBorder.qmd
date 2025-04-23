@@ -241,6 +241,50 @@ Use filtering, grouping, and plotting for geographic comparisons
 
 ```{r}
 
+BorderCrossing %>% 
+  group_by(State) %>% 
+  summarise(TotalCrossings=sum(Value)) -> BorderCrossing1
+
+ggplot(data=BorderCrossing1)+
+  stat_summary(aes(x=reorder(State , -TotalCrossings), y=TotalCrossings), geom="bar", fun="sum", fill="red")+
+  xlab("States that Border Mexico or Canada")
+  
+```
+
+```{r}
+BorderCrossing %>% 
+  group_by(Border) %>% 
+  summarise(TotalCrossings=sum(Value)) -> BorderCrossing2
+
+ggplot(data=BorderCrossing2)+
+  stat_summary(aes(x=reorder(Border , -TotalCrossings), y=TotalCrossings), geom="bar", fun="sum", fill="orange")+
+  xlab("Border")
+```
+
+```{r}
+BorderCrossing %>% 
+  group_by(Year, State) %>% 
+  summarise(TotalCrossings=sum(Value)) -> BorderCrossing3
+
+BorderCrossing3$Year <- as.numeric(BorderCrossing3$Year)
+  
+ggplot(data=BorderCrossing3)+
+  geom_line(aes(x=Year, y=TotalCrossings, color=State))+
+  ylab("Total Crossings")+
+  ggtitle("Relationship of Total Crossings over the Years and States")
+
+```
+
+```{r}
+BorderCrossing %>% 
+  group_by(Measure, State) %>% 
+  summarise(TotalCrossings=sum(Value)) -> BorderCrossing4
+
+
+ggplot(data=BorderCrossing4)+
+  stat_summary(aes(x=Measure, y=TotalCrossings, fill=State), geom="bar", fun="sum", position="dodge")+
+  theme(axis.text.x = element_text(angle = 10))
+
 ```
 
 # Ben McKinney - Crossing Type and forecasting
