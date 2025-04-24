@@ -4,7 +4,7 @@ format: html
 editor: visual
 ---
 
-# Introduction hello hello hi hi hi my name ben
+# Introduction
 
 **Core Research Question:**\
 How have U.S. border crossings with Canada and Mexico evolved over time, and what do these patterns reveal about regional, economic, and policy-driven influences on cross-border mobility?
@@ -13,25 +13,53 @@ How have U.S. border crossings with Canada and Mexico evolved over time, and wha
 
 **START OF DATA MANAGEMENT AND FILE LOADING**
 
+*Variable names and data management*
+
 ```{r}
 library(dplyr)
 library(tidyverse)
 library(ggplot2)
 library(qacData)
 require(lubridate)
-require(dplyr)
-require(ggplot2)
 require(stringr)
-border_data <- read_csv("Border.csv")
-glimpse(border_data)
 
-### Date clean
+# ========================
+# RAW DATA
+# ========================
+border_data <- read_csv("Border.csv")
+
+# ============================================================
+# CLEANED DATA: Convert 'Date', extract helpers, classify time (Ben why did you do this so manually)
+# ============================================================
 border_clean <- border_data %>%
-  mutate(Date = my(Date))  # 'my' = month-year parser from lubridate
+  # Convert raw 'Date' like "Jan-1996" to Date object
+  mutate(
+    Date = lubridate::my(Date),
+    Month = substr(Date, 1, 3),                   
+    Year = lubridate::year(Date),                 
+    Monthn = lubridate::month(Date),              
+    MonthFormatted = format(Date, "%m-%Y"),       
+    Season = case_when(                            
+      Monthn >= 3 & Monthn <= 5 ~ "Spring",
+      Monthn >= 6 & Monthn <= 8 ~ "Summer",
+      Monthn >= 9 & Monthn <= 11 ~ "Fall",
+      Monthn == 12 | Monthn <= 2 ~ "Winter",
+      TRUE ~ "Unknown"
+    )
+  )
+
+# ==================================================================================
+# CLASSIFIED DATA: Group crossings into 'Commercial' and 'Personal' traffic types
+# ==================================================================================
+border_classified <- border_clean %>%
+  mutate(TypeGroup = case_when(
+    str_detect(Measure, "Truck|Bus|Train|Rail") ~ "Commercial",
+    str_detect(Measure, "Pedestrian|Vehicle|Personal|Bicycl") ~ "Personal",
+    TRUE ~ "Other"
+  )) %>%
+  filter(TypeGroup != "Other")
 
 ```
-
-*Variable names and data management*
 
 ------------------------------------------------------------------------
 
@@ -82,83 +110,110 @@ border_clean <- border_data %>%
 
 ## Data Managment
 
-```{r}
-library(qacData)
-require(lubridate)
-require(dplyr)
-require(ggplot2)
-require(stringr)
-
-
-
-BorderCrossing$Month <- substr(BorderCrossing$Date, 1,3)
-BorderCrossing$Year <- substr(BorderCrossing$Date, 5,8)
-
-BorderCrossing$Year <- as.numeric(BorderCrossing$Year)
-
-BorderCrossing %>% 
-  mutate(Monthn=case_when(Month=="Jan" ~ 1, Month=="Feb" ~2, Month=="Mar" ~3, Month=="Apr" ~4, Month=="May"~5, Month=="June" ~ 6, Month=="Jul" ~ 7, Month=="Aug" ~8, Month=="Sep" ~9, Month=="Oct" ~10, Month=="Nov"~11, Month=="Dec" ~ 12)) -> BorderCrossing
-
-
-BorderCrossing %>% 
-  mutate(Season=case_when(Monthn >2 & Monthn < 6 ~ "Spring", Monthn >5 & Month <9 ~ "Summer", Monthn >8 & Monthn <12 ~ "Fall", Monthn >11 | Monthn <3 ~ "Winter")) -> BorderCrossing
-
-BorderCrossing %>%
-  mutate(Date = make_date(Year, Monthn)) -> BorderCrossing
-
-BorderCrossing %>% 
-  mutate(format(Date, "%m-%Y")) -> BorderCrossing
-
-names(BorderCrossing) <- c("PortName", "State", "PortCode","Border", "Dates", "Measure", "Value", "Latitude", "Longitude", "Point", "Months", "Year", "Month", "Season", "Date") 
-```
-
 # Jaime – Temporal Trends and Event Analysis
 
 *Responsibilities:* - Analyze crossing volumes over time - Explore seasonal or yearly patterns - Investigate alignment with major events (9/11, COVID-19, etc.) - Use time series plots, trends, and event markers
 
 ```{r}
 
-#Analysing crossing values over time
-
-border_clean %>%
-  group_by(Date, Border, Measure) %>%
-  summarise(total = sum(Value), .groups = "drop")
-
-######################################################################################################################
-
+library(scales)
 
 border_clean %>%
   group_by(Date, Border, Measure) %>%
   summarise(total = sum(Value), .groups = "drop") %>%
+  filter(Measure %in% c("Pedestrians", "Personal Vehicle Passengers", "Personal Vehicles", "Truck Containers Loaded", "Trucks")) %>%
   ggplot(aes(x = Date, y = total, color = Measure)) +
-  geom_line() +
+  geom_line(size = 1) +
   facet_wrap(~ Border, scales = "free_y") +
+  scale_y_continuous(labels = label_comma()) +
+  scale_color_manual(values = c(
+    "Pedestrians" = "#1b9e77",
+    "Personal Vehicle Passengers" = "#d95f02",
+    "Personal Vehicles" = "#7570b3",
+    "Truck Containers Loaded" = "#e7298a",
+    "Trucks" = "#66a61e"
+  )) +
   labs(
-    title = "Crossing Types Over Time by Border",
+    title = "Top 5 Border Crossing Types Over Time",
     x = "Date", y = "Total Crossings", color = "Type"
   ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
 
 ######################################################################################################################
 
 ```
 
+This graph shows the top five types of border crossings over time at the U.S.-Canada and U.S.-Mexico borders. **Personal vehicle passengers and personal vehicles consistently represent the highest crossing volumes** at both borders, with sharp seasonal patterns especially evident at the northern border. Overall, the **U.S.-Mexico border consistently sees higher crossing volumes**, especially for personal vehicle passengers, while pedestrian and commercial crossings like truck container traffic remain lower but relatively stable over time.
+
 ```{r}
-######################################################################################################################
-#Exploring seasonal or yearly patterns
-border_clean %>%
-  mutate(month = month(Date, label = TRUE)) %>%
-  group_by(month, Border) %>%
-  summarise(avg_crossings = mean(Value, na.rm = TRUE)) %>%
-  ggplot(aes(x = month, y = avg_crossings, fill = Border)) +
-  geom_col(position = "dodge") +
-  labs(title = "Average Crossings by Month (Seasonality)", y = "Avg Crossings") +
-  theme_minimal()
-######################################################################################################################
+library(ggplot2)
+library(dplyr)
+library(scales)
+
+# Group by Season and Border
+seasonal_data <- border_clean %>%
+  group_by(Season, Border) %>%
+  summarise(avg_crossings = mean(Value, na.rm = TRUE), .groups = "drop")
+
+#logic
+seasonal_data$Season <- factor(seasonal_data$Season, levels = c("Winter", "Spring", "Summer", "Fall"))
+
+
+ggplot(seasonal_data, aes(x = Season, y = avg_crossings, fill = Border)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ Border, scales = "free_y") +
+  scale_y_continuous(labels = label_comma()) +
+  labs(
+    title = "Average Border Crossings by Season",
+    x = "Season",
+    y = "Average Crossings"
+  ) +
+  theme_minimal() +
+  theme(strip.text = element_text(size = 12, face = "bold"))
+
+
 ```
 
-```{r}
+This visualization compares the average number of border crossings by season at the U.S.-Canada and U.S.-Mexico borders. **Crossings at the U.S.-Canada border show a distinct summer peak**, reflecting seasonal travel and tourism patterns, while winter months experience the lowest volumes. In contrast, **the U.S.-Mexico border shows minimal seasonal variation**, maintaining high crossing levels across all seasons. This suggests that **cross-border activity at the southern border is more consistent year-round**, likely due to ongoing economic, social, and commuting needs.
 
+```{r}
+library(ggplot2)
+library(dplyr)
+library(lubridate)
+library(scales)
+
+# monthly averages by each border
+monthly_data <- border_clean %>%
+  mutate(Month = month(Date, label = TRUE, abbr = TRUE)) %>%
+  group_by(Month, Border) %>%
+  summarise(avg_crossings = mean(Value, na.rm = TRUE), .groups = "drop")
+
+# month order logic
+monthly_data$Month <- factor(monthly_data$Month, levels = month.abb)
+
+
+ggplot(monthly_data, aes(x = Month, y = avg_crossings, fill = Border)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ Border, scales = "free_y") +
+  scale_y_continuous(labels = label_comma()) +
+  labs(
+    title = "Average Border Crossings by Month",
+    x = "Month",
+    y = "Average Crossings"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 12, face = "bold")
+  )
+
+```
+
+These two plots show the average number of border crossings per month for the U.S.-Canada and U.S.-Mexico borders. At the **U.S.-Canada border**, there is a clear seasonal pattern, with crossings peaking in the **summer months (June–August)**—likely due to tourism and favorable weather—and dropping during the winter. In contrast, the **U.S.-Mexico border maintains high crossing volumes year-round**, with only minor fluctuations across months. This suggests that **economic and social factors**, rather than seasonality, drive most of the traffic at the southern border.
+
+```{r}
 ######################################################################################################################
 
 # Aggregate crossing totals by date and border
@@ -166,20 +221,34 @@ border_clean %>%
   group_by(Date, Border) %>%
   summarise(total = sum(Value, na.rm = TRUE), .groups = "drop") %>%
   ggplot(aes(x = Date, y = total, color = Border)) +
-  geom_line(size = 1.2) +
   
-  # highlighting major events in the U.S.
+  # Add main trend lines
+  geom_line(size = 1.2) +
+
+  # Optional: Add smoothed trend overlay for visibility
+  geom_smooth(se = FALSE, method = "loess", span = 0.15, linetype = "dotted", size = 0.6, alpha = 0.6) +
+
+  # Add shaded region for extended COVID-era restrictions
+  annotate("rect", xmin = as.Date("2020-03-01"), xmax = as.Date("2021-06-01"),
+           ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.05) +
+
+  # Vertical lines for major events
   geom_vline(xintercept = as.Date("2001-09-11"), linetype = "dashed", color = "red", size = 1) +
   geom_vline(xintercept = as.Date("2020-03-01"), linetype = "dashed", color = "blue", size = 1) +
-  
-  
-  annotate("text", x = as.Date("2001-09-11"), y = 15000000, label = "9/11", color = "red", angle = 90, vjust = -0.4, hjust = 0.5, fontface = "bold") +
-  annotate("text", x = as.Date("2020-03-01"), y = 15000000, label = "COVID-19", color = "blue", angle = 90, vjust = -0.4, hjust = 0.5, fontface = "bold") +
-  
 
+  # Annotate events with text
+  annotate("text", x = as.Date("2001-09-11"), y = 15000000,
+           label = "9/11", color = "red", angle = 90, vjust = -0.4,
+           hjust = 0.5, fontface = "bold") +
+  annotate("text", x = as.Date("2020-03-01"), y = 15000000,
+           label = "COVID-19", color = "blue", angle = 90, vjust = -0.4,
+           hjust = 0.5, fontface = "bold") +
+
+  # Labels and styling
   labs(
     title = "U.S. Border Crossings Over Time (with Major Events)",
     subtitle = "Dashed lines mark significant events: 9/11 and COVID-19",
+    caption = "Source: U.S. Border Crossing Data (BTS)",
     x = "Date",
     y = "Total Crossings",
     color = "Border"
@@ -187,14 +256,17 @@ border_clean %>%
   scale_y_continuous(labels = scales::comma) +
   theme_minimal(base_size = 13)
 
-
 ######################################################################################################################
+
 ```
+
+This time-series visualization highlights U.S. border crossing trends at the northern and southern borders from the late 1990s to the present, with major national events marked for context. The **red dashed line** indicates the 9/11 attacks (2001), after which **a noticeable and sustained decline in crossings at the U.S.-Canada border** is observed. In contrast, the U.S.-Mexico border, while also affected, rebounded more quickly. The **blue dashed line and shaded region** represent the onset and extended disruption caused by **COVID-19 in early 2020**, which resulted in an immediate and historic drop in crossings at both borders. Recovery began around mid-2021 but has not yet fully returned to pre-pandemic levels. Overall, the **U.S.-Mexico border consistently experiences higher crossing volumes**, and the chart shows how both borders respond differently to external shocks, likely due to differences in travel purpose, policy enforcement, and economic dependency.
 
 ```{r}
 
 ######################################################################################################################
-#See if commercial vehicles were imapcted or just pedestrians entering the U.S.
+
+# Classify crossings as Commercial vs Personal
 border_classified <- border_clean %>%
   mutate(
     TypeGroup = case_when(
@@ -203,25 +275,39 @@ border_classified <- border_clean %>%
       TRUE ~ "Other"
     )
   ) %>%
-  filter(TypeGroup != "Other")  # filter out junk or unclear categories
+  filter(TypeGroup != "Other")  # filter out unclear or rare categories
 
+# Plot total crossings over time by TypeGroup
 border_classified %>%
   group_by(Date, TypeGroup) %>%
   summarise(total = sum(Value, na.rm = TRUE), .groups = "drop") %>%
   ggplot(aes(x = Date, y = total, color = TypeGroup)) +
-  geom_line(size = 1.2) +
   
-  # Major event lines
+  # Main lines
+  geom_line(size = 1.2) +
+
+  # Optional smoothed trend (comment out if you want cleaner lines only)
+  geom_smooth(se = FALSE, method = "loess", span = 0.2, linetype = "dotted", alpha = 0.3) +
+
+  # Shaded region for extended COVID impact
+  annotate("rect", xmin = as.Date("2020-03-01"), xmax = as.Date("2021-06-01"),
+           ymin = -Inf, ymax = Inf, alpha = 0.05, fill = "blue") +
+
+  # Major event vertical lines
   geom_vline(xintercept = as.Date("2001-09-11"), linetype = "dashed", color = "red", size = 1) +
   geom_vline(xintercept = as.Date("2020-03-01"), linetype = "dashed", color = "blue", size = 1) +
-  
-  # Text labels for events
-  annotate("text", x = as.Date("2001-09-11"), y = 15000000, label = "9/11", color = "red", angle = 90, vjust = -0.4, hjust = 0.5, fontface = "bold") +
-  annotate("text", x = as.Date("2020-03-01"), y = 15000000, label = "COVID-19", color = "blue", angle = 90, vjust = -0.4, hjust = 0.5, fontface = "bold") +
 
+  # Event labels
+  annotate("text", x = as.Date("2001-09-11"), y = 15000000, label = "9/11",
+           color = "red", angle = 90, vjust = -0.4, hjust = 0.5, fontface = "bold") +
+  annotate("text", x = as.Date("2020-03-01"), y = 15000000, label = "COVID-19",
+           color = "blue", angle = 90, vjust = -0.4, hjust = 0.5, fontface = "bold") +
+
+  # Titles and styling
   labs(
     title = "Border Crossings Over Time: Commercial vs Personal",
     subtitle = "Note steep declines aligned with major national events",
+    caption = "Source: U.S. Border Crossing Data (BTS)",
     x = "Date",
     y = "Total Crossings",
     color = "Crossing Type"
@@ -230,11 +316,14 @@ border_classified %>%
   theme_minimal(base_size = 13)
 
 ######################################################################################################################
+
 ```
+
+This graph compares commercial and personal border crossings over time, highlighting their distinct responses to major national events. **Personal crossings show sharp, immediate declines following both 9/11 and the onset of COVID-19**, reflecting heightened security measures and travel restrictions that primarily impacted non-essential travel. **Commercial crossings, however, remained relatively stable throughout**, even during the peak of the COVID-19 pandemic, underscoring their essential role in maintaining supply chains and economic continuity. The post-2020 recovery in personal crossings is evident but gradual, while commercial traffic exhibits remarkable consistency across decades, largely insulated from external shocks.
 
 # Ben Mayer – Regional and Port-Level Analysis
 
-Responsibilities: hi my name is ben i made this code
+Responsibilities:
 
 Analyze crossing volume by state and port
 
@@ -246,49 +335,293 @@ Use filtering, grouping, and plotting for geographic comparisons
 
 ```{r}
 
-border_clean %>% 
-  group_by(State) %>% 
-  summarise(TotalCrossings=sum(Value)) -> BorderCrossing1
+library(ggplot2)
+library(dplyr)
+library(maps)
+library(scales)
 
-ggplot(data=BorderCrossing1)+
-  stat_summary(aes(x=reorder(State , -TotalCrossings), y=TotalCrossings), geom="bar", fun="sum", fill="red")+
-  xlab("States that Border Mexico or Canada")
+# cleaning state data
+BorderCrossing1 <- border_clean %>%
+  group_by(State) %>%
+  summarise(TotalCrossings = sum(Value, na.rm = TRUE)) %>%
+  mutate(State = tolower(State))
+
+us_states <- map_data("state")
+
+map_data_joined <- left_join(us_states, BorderCrossing1, by = c("region" = "State"))
+
+
+ggplot(map_data_joined, aes(long, lat, group = group, fill = TotalCrossings)) +
+  geom_polygon(color = "black") +
+  scale_fill_gradient(
+    low = "#ffffcc", high = "#ff4444", na.value = "gray90",
+    labels = label_comma(),  # 👈 NO SCIENTIFIC NOTATION
+    name = "Total Crossings"
+  ) +
+  labs(
+    title = "Total U.S. Border Crossings by State",
+    subtitle = "Based on land ports of entry at U.S.-Mexico and U.S.-Canada borders",
+    caption = "Source: U.S. Border Crossing Data (BTS)"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank(),
+    plot.title = element_text(face = "bold"),
+    legend.title = element_text(face = "bold"),
+    legend.position = "right"
+  )
+
   
 ```
 
 ```{r}
-border_clean %>% 
-  group_by(Border) %>% 
-  summarise(TotalCrossings=sum(Value)) -> BorderCrossing2
+library(ggplot2)
+library(dplyr)
+library(maps)
+library(scales)
+library(patchwork) 
 
-ggplot(data=BorderCrossing2)+
-  stat_summary(aes(x=reorder(Border , -TotalCrossings), y=TotalCrossings), geom="bar", fun="sum", fill="orange")+
-  xlab("Border")
+#base map
+us_states <- map_data("state")
+
+# border per region
+border_data_grouped <- border_clean %>%
+  filter(Border %in% c("US-Mexico Border", "US-Canada Border")) %>%
+  group_by(State, Border) %>%
+  summarise(TotalCrossings = sum(Value, na.rm = TRUE), .groups = "drop") %>%
+  mutate(State = tolower(State))
+
+# map base
+make_map <- function(border_name, title_label, fill_palette) {
+  border_states <- border_data_grouped %>% filter(Border == border_name)
+  map_join <- left_join(us_states, border_states, by = c("region" = "State"))
+
+  ggplot(map_join, aes(long, lat, group = group)) +
+    geom_polygon(aes(fill = TotalCrossings), color = "black") +
+    scale_fill_gradient(
+      low = "#ffffcc", high = fill_palette, na.value = "gray90",
+      labels = label_comma(), name = paste0("Total Crossings\n(", border_name, ")")
+    ) +
+    labs(title = title_label) +
+    coord_fixed(1.3) +
+    theme_minimal(base_size = 13) +
+    theme(
+      axis.text = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid = element_blank(),
+      plot.title = element_text(face = "bold"),
+      legend.title = element_text(size = 10),
+      legend.position = "right"
+    )
+}
+
+
+map_canada <- make_map("US-Canada Border", "U.S.-Canada Border", "#2b8cbe")
+map_mexico <- make_map("US-Mexico Border", "U.S.-Mexico Border", "#de2d26")
+
+#patchwork logic
+map_canada + map_mexico + plot_annotation(
+  title = "Total Border Crossings by State (Separate Color Scales)",
+  subtitle = "Each map uses its own scale and legend for comparison clarity",
+  caption = "Source: U.S. Border Crossing Data (BTS)"
+)
+
+
+```
+
+These two choropleth maps show the total number of border crossings by state, separated by the **U.S.-Mexico** and **U.S.-Canada** borders, with each map using its own color scale for clarity. On the **southern border**, **Texas and California dominate** in total crossings, reflecting their large, busy ports of entry and proximity to major cities and trade routes. In contrast, on the **northern border**, states like **New York, Michigan, and Washington** show the highest volumes, driven by both commercial transport and tourism. Splitting the maps this way highlights the **different geographic patterns and scales** of activity at each border, and avoids the distortion that occurs when all states are placed on a single color scale.
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(scales)
+
+# Prepare data
+border_data <- border_clean %>%
+  group_by(Border) %>%
+  summarise(TotalCrossings = sum(Value, na.rm = TRUE)) %>%
+  mutate(
+    Percentage = TotalCrossings / sum(TotalCrossings),
+    Label = case_when(
+      Border == "US-Mexico Border" ~ "🇲🇽 Mexico Border",
+      Border == "US-Canada Border" ~ "🇨🇦 Canada Border"
+    ),
+    LabelText = paste0(round(Percentage * 100), "%\n", comma(TotalCrossings))
+  )
+
+# Donut chart with numbers and percentages
+ggplot(border_data, aes(x = 2, y = TotalCrossings, fill = Label)) +
+  geom_col(width = 1, color = "black") +
+  coord_polar("y", start = 0) +
+  xlim(0.5, 2.5) +  # Creates the donut hole
+  scale_fill_manual(values = c("🇲🇽 Mexico Border" = "#f16913", "🇨🇦 Canada Border" = "#3182bd")) +
+  geom_text(
+    aes(label = LabelText),
+    position = position_stack(vjust = 0.5),
+    color = "black", size = 5, fontface = "bold", lineheight = 1.2
+  ) +
+  labs(
+    title = "Share of Total U.S. Land Border Crossings",
+    subtitle = "With percentage and total crossings labeled",
+    fill = "Border",
+    caption = "Source: U.S. Border Crossing Data (BTS)"
+  ) +
+  theme_void(base_size = 15) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    legend.title = element_text(face = "bold"),
+    legend.position = "right"
+  )
+
 ```
 
 ```{r}
-border_clean %>% 
-  group_by(Year, State) %>% 
-  summarise(TotalCrossings=sum(Value)) -> BorderCrossing3
 
-BorderCrossing3$Year <- as.numeric(BorderCrossing3$Year)
-  
-ggplot(data=BorderCrossing3)+
-  geom_line(aes(x=Year, y=TotalCrossings, color=State))+
-  ylab("Total Crossings")+
-  ggtitle("Relationship of Total Crossings over the Years and States")
+library(ggplot2)
+library(dplyr)
+library(scales)
+library(gganimate)
+
+
+BorderCrossing3 <- border_clean %>%
+  group_by(Year, State) %>%
+  summarise(TotalCrossings = sum(Value), .groups = "drop") %>%
+  mutate(Year = as.numeric(Year))
+
+#filter top 8 states for clarity
+top_states <- BorderCrossing3 %>%
+  group_by(State) %>%
+  summarise(total = sum(TotalCrossings)) %>%
+  top_n(8, total) %>%
+  pull(State)
+
+BorderCrossing3 <- filter(BorderCrossing3, State %in% top_states)
+
+
+animated_plot <- ggplot(BorderCrossing3, aes(x = Year, y = TotalCrossings, color = State, group = State)) +
+  geom_line(linewidth = 1.3) +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title = "Animated Border Crossings by State",
+    subtitle = "Total crossings per year (Top States)",
+    x = "Year", y = "Total Crossings", color = "State"
+  ) +
+  theme_minimal(base_size = 14) +
+  transition_reveal(Year)
+
+animate(animated_plot, width = 800, height = 500, fps = 10, renderer = gifski_renderer())
+
+
 
 ```
 
 ```{r}
-border_clean %>% 
-  group_by(Measure, State) %>% 
-  summarise(TotalCrossings=sum(Value)) -> BorderCrossing4
+ggplot(BorderCrossing3, aes(x = Year, y = TotalCrossings, fill = State)) +
+  geom_area(position = "stack", alpha = 0.9) +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title = "Total Border Crossings Over Time by State",
+    subtitle = "Stacked to show relative contributions per year",
+    x = "Year",
+    y = "Total Crossings",
+    fill = "State"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    legend.position = "right"
+  )
+
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(scales)
+library(viridis)
 
 
-ggplot(data=BorderCrossing4)+
-  stat_summary(aes(x=Measure, y=TotalCrossings, fill=State), geom="bar", fun="sum", position="dodge")+
-  theme(axis.text.x = element_text(angle = 10))
+BorderCrossing3 <- border_clean %>%
+  group_by(Year, State) %>%
+  summarise(TotalCrossings = sum(Value), .groups = "drop") %>%
+  mutate(Year = as.numeric(Year))
+
+#  top 10 states by total crossings
+top_states <- BorderCrossing3 %>%
+  group_by(State) %>%
+  summarise(total = sum(TotalCrossings)) %>%
+  top_n(10, total) %>%
+  pull(State)
+
+BorderCrossing3_filtered <- BorderCrossing3 %>%
+  filter(State %in% top_states)
+
+
+ggplot(BorderCrossing3_filtered, aes(x = Year, y = reorder(State, -TotalCrossings), fill = TotalCrossings)) +
+  geom_tile(color = "white", linewidth = 0.2) +
+  scale_fill_viridis_c(label = comma, option = "C") +
+  geom_vline(xintercept = 2001, linetype = "dashed", color = "red", size = 0.4) +
+  geom_vline(xintercept = 2020, linetype = "dashed", color = "blue", size = 0.4) +
+  labs(
+    title = "Heatmap of Border Crossings by State and Year",
+    subtitle = "Top 10 border states • Dotted lines mark 9/11 and COVID-19",
+    x = "Year",
+    y = "State",
+    fill = "Total Crossings"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 16),
+    plot.subtitle = element_text(hjust = 0.5),
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+
+
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(treemapify)
+library(scales)
+
+
+BorderCrossing4 <- border_clean %>%
+  group_by(State, Measure) %>%
+  summarise(TotalCrossings = sum(Value), .groups = "drop")
+
+#top states only
+top_states <- BorderCrossing4 %>%
+  group_by(State) %>%
+  summarise(StateTotal = sum(TotalCrossings)) %>%
+  top_n(6, StateTotal) %>%
+  pull(State)
+
+BorderCrossing_treemap <- BorderCrossing4 %>%
+  filter(State %in% top_states)
+
+
+ggplot(BorderCrossing_treemap, aes(
+  area = TotalCrossings,
+  fill = Measure,
+  label = paste(Measure, "\n", comma(TotalCrossings)),
+  subgroup = State
+)) +
+  geom_treemap() +
+  geom_treemap_subgroup_border(color = "white") +
+  geom_treemap_subgroup_text(place = "top", grow = TRUE, alpha = 0.6, color = "black", fontface = "bold") +
+  geom_treemap_text(colour = "white", place = "centre", reflow = TRUE, size = 12/.pt) +
+  labs(
+    title = "Border Crossing Types by State",
+    subtitle = "Treemap grouped by State (top 6 states by total crossings)",
+    fill = "Crossing Type"
+  ) +
+  theme_minimal(base_size = 13)
+
 
 ```
 
@@ -303,8 +636,6 @@ Identify how crossing types respond to events
 (Optional) Try clustering ports based on traffic behavior
 
 (Optional) Forecast future crossing volumes
-
-Testing 123
 
 ```{r}
 # Univariate Analysis: Percentage of total traffic volume by crossing type
