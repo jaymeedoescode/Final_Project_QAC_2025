@@ -4,7 +4,7 @@ format: html
 editor: visual
 ---
 
-# Introduction hello hello hi hi hi my name ben 
+# Introduction hello hello hi hi hi my name ben
 
 **Core Research Question:**\
 How have U.S. border crossings with Canada and Mexico evolved over time, and what do these patterns reveal about regional, economic, and policy-driven influences on cross-border mobility?
@@ -89,7 +89,7 @@ require(dplyr)
 require(ggplot2)
 require(stringr)
 
-BorderCrossing <- read_csv("~/Documents/Exploratory Data Anaylsis/Border_Crossing_Entry_Data.csv")
+
 
 BorderCrossing$Month <- substr(BorderCrossing$Date, 1,3)
 BorderCrossing$Year <- substr(BorderCrossing$Date, 5,8)
