@@ -20,6 +20,7 @@ library(dplyr)
 library(tidyverse)
 library(ggplot2)
 library(qacData)
+library(knitr)
 require(lubridate)
 require(stringr)
 
@@ -644,6 +645,9 @@ univariate_data <- border_clean %>%
   summarise(Total_Value = sum(Value, na.rm = TRUE)) %>%
   mutate(Percentage = Total_Value / sum(Total_Value) * 100)
 
+kable(univariate_data, digits = 2, 
+      caption = "Percentage of Total Traffic Volume by Crossing Type")
+
 # Bar plot for percentage analysis
 ggplot(univariate_data, aes(x = Measure, y = Percentage, fill = Measure)) +
   geom_bar(stat = "identity") +
@@ -658,6 +662,8 @@ anova_result <- aov(Value ~ Measure, data = border_clean)
 summary(anova_result)
 
 ```
+The table and bar chart above are a basic univariate analysis representing the number of total crossings by type. Overall, Personal vehicles and Personal Vehicle Passengers accounts for 80% of the total crossings for both borders. Commercial transport, such as rail/truck containers and trucks, accounts for 6.37% of the total border crossings. 
+
 
 ```{r}
 # Filter for one year before and after March 2020
@@ -694,6 +700,7 @@ monthly_totals <- border_periods %>%
 # Get unique Measures
 measures <- unique(monthly_totals$Measure)
 ```
+The bar chart above compares the average number of of border crossings by type before and after the covid pandemic began in March of 2020. Overall, nearly every crossing type decreased drastically after the pandemic began. The most drastic of these involved pedestrians and personal vehicles/passengers. Conducting a T-test, we can see that 10 out of 12 crossing types had statistically significant decreases in volume. The only 2 exceptions to this pattern are truck containers emptied and trucks, which did not significantly change after Covid. This is likely due to the necessity of supply chain goods coming into the US. Additionally, border restrictions may not have affected all types of freight equally, which may be evidenced by the significant decrease in rail containers. 
 
 ```{r}
 # Run t-tests for each Measure
