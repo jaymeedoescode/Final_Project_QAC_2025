@@ -377,6 +377,8 @@ ggplot(map_data_joined, aes(long, lat, group = group, fill = TotalCrossings)) +
   
 ```
 
+This graph shows the number of border crossings across the different states. This indicates that the data set has more crossings on the Mexico border than the Canada border. Also the Canada border crossing are spread out while the Mexico crossings are constricted to just 4 states.
+
 ```{r}
 library(ggplot2)
 library(dplyr)
@@ -479,6 +481,8 @@ ggplot(border_data, aes(x = 2, y = TotalCrossings, fill = Label)) +
 
 ```
 
+This graph shows the relationship between number of border crossings and which border they crossed. The Mexico border has over twice as many crossings then the Canada border. I wonder if including flying border crossings would change the results of this distribution.
+
 ```{r}
 
 library(ggplot2)
@@ -518,6 +522,8 @@ animate(animated_plot, width = 800, height = 500, fps = 10, renderer = gifski_re
 
 
 ```
+
+This graph shows the relationship between years and the border crossings by state. The top throughout are Texas and California. Every state sees dips around 2008 and 2020. There is also a dip during 2025 but that's because the data in 2025 is incomplete. The top 2 states experience bigger drops then the lower 6 states. The states at the top 2 states are Mexico.
 
 ```{r}
 ggplot(BorderCrossing3, aes(x = Year, y = TotalCrossings, fill = State)) +
@@ -626,7 +632,9 @@ ggplot(BorderCrossing_treemap, aes(
 
 ```
 
-# Ben McKinney - Crossing Type and forecasting
+This graph shows the relationship between the top 6 state and border crossing type. In every state the most popular is personal vehicles and there passengers. Pedestrians is the 3rd most popular in the Mexico border states but isn't very present in the Canada border states. Trucks is instead the 3rd most popular for the Canada border states but isn't very present in the Mexico Border States.4
+
+## Ben McKinney - Crossing Type and forecasting
 
 Responsibilities:
 
@@ -662,8 +670,8 @@ anova_result <- aov(Value ~ Measure, data = border_clean)
 summary(anova_result)
 
 ```
-The table and bar chart above are a basic univariate analysis representing the number of total crossings by type. Overall, Personal vehicles and Personal Vehicle Passengers accounts for 80% of the total crossings for both borders. Commercial transport, such as rail/truck containers and trucks, accounts for 6.37% of the total border crossings. 
 
+The table and bar chart above are a basic univariate analysis representing the number of total crossings by type. Overall, Personal vehicles and Personal Vehicle Passengers accounts for 80% of the total crossings for both borders. Commercial transport, such as rail/truck containers and trucks, accounts for 6.37% of the total border crossings.
 
 ```{r}
 # Filter for one year before and after March 2020
@@ -700,7 +708,8 @@ monthly_totals <- border_periods %>%
 # Get unique Measures
 measures <- unique(monthly_totals$Measure)
 ```
-The bar chart above compares the average number of of border crossings by type before and after the covid pandemic began in March of 2020. Overall, nearly every crossing type decreased drastically after the pandemic began. The most drastic of these involved pedestrians and personal vehicles/passengers. Conducting a T-test, we can see that 10 out of 12 crossing types had statistically significant decreases in volume. The only 2 exceptions to this pattern are truck containers emptied and trucks, which did not significantly change after Covid. This is likely due to the necessity of supply chain goods coming into the US. Additionally, border restrictions may not have affected all types of freight equally, which may be evidenced by the significant decrease in rail containers. 
+
+The bar chart above compares the average number of of border crossings by type before and after the covid pandemic began in March of 2020. Overall, nearly every crossing type decreased drastically after the pandemic began. The most drastic of these involved pedestrians and personal vehicles/passengers. Conducting a T-test, we can see that 10 out of 12 crossing types had statistically significant decreases in volume. The only 2 exceptions to this pattern are truck containers emptied and trucks, which did not significantly change after Covid. This is likely due to the necessity of supply chain goods coming into the US. Additionally, border restrictions may not have affected all types of freight equally, which may be evidenced by the significant decrease in rail containers.
 
 ```{r}
 # Run t-tests for each Measure
