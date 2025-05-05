@@ -677,11 +677,20 @@ border_periods <- border_clean %>%
 # Summarize average monthly crossings by Measure and Period
 average_summary <- border_periods %>%
   group_by(Measure, Period) %>%
-  summarise(Average_Monthly = mean(Value, na.rm = TRUE), .groups = 'drop')
+  summarise(Average_Monthly = mean(Value, na.rm = TRUE), .groups = 'drop') %>%
+  mutate(Period = factor(Period, levels = c("Year Before Mar 2020", "Year After Mar 2020")))
 
-# Plot comparison of average monthly crossings
 comparison_plot <- ggplot(average_summary, aes(x = Measure, y = Average_Monthly, fill = Period)) +
-  geom_bar(stat = "identity", position = "dodge") +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  geom_text(aes(label = round(Average_Monthly)), 
+            position = position_dodge(width = 0.9),
+            vjust = -0.3,
+            color = "black",
+            size = 3.5) +
+  scale_fill_manual(values = c(
+    "Year Before Mar 2020" = "#66a3c2",
+    "Year After Mar 2020" = "#e07b7b"
+  )) +
   theme_minimal() +
   labs(title = "Average Monthly Crossings by Type (Year Before vs. After March 2020)",
        x = "Crossing Type",
