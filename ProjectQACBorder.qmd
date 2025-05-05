@@ -709,21 +709,70 @@ comparison_plot <- ggplot(average_summary, aes(x = Measure, y = Average_Monthly,
 print(comparison_plot)
 
 # Prepare monthly totals per period
-monthly_totals <- border_periods %>%
+monthly_totals1 <- border_periods %>%
   mutate(Month = floor_date(Date, "month")) %>%
   group_by(Measure, Period, Month) %>%
   summarise(Monthly_Total = sum(Value, na.rm = TRUE), .groups = 'drop')
 
 # Get unique Measures
-measures <- unique(monthly_totals$Measure)
+measures1 <- unique(monthly_totals1$Measure)
 ```
 
 The bar chart above compares the average number of of border crossings by type before and after the covid pandemic began in March of 2020. Overall, nearly every crossing type decreased drastically after the pandemic began. The most drastic of these involved pedestrians and personal vehicles/passengers. Conducting a T-test, we can see that 10 out of 12 crossing types had statistically significant decreases in volume. The only 2 exceptions to this pattern are truck containers emptied and trucks, which did not significantly change after Covid. This is likely due to the necessity of supply chain goods coming into the US. Additionally, border restrictions may not have affected all types of freight equally, which may be evidenced by the significant decrease in rail containers.
 
 ```{r}
+# Filter for one year before and after September 2001
+border_periods <- border_clean %>%
+  filter(Date >= as.Date("2000-09-01") & Date < as.Date("2002-09-01")) %>%
+  mutate(Period = case_when(
+    Date < as.Date("2001-09-01") ~ "Year Before Sep 2001",
+    TRUE ~ "Year After Sep 2001"
+  ))
+
+# Summarize average monthly crossings by Measure and Period
+average_summary <- border_periods %>%
+  group_by(Measure, Period) %>%
+  summarise(Average_Monthly = mean(Value, na.rm = TRUE), .groups = 'drop') %>%
+  mutate(Period = factor(Period, levels = c("Year Before Sep 2001", "Year After Sep 2001")))
+
+# Create the comparison plot
+comparison_plot <- ggplot(average_summary, aes(x = Measure, y = Average_Monthly, fill = Period)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  geom_text(aes(label = round(Average_Monthly)), 
+            position = position_dodge(width = 0.9),
+            vjust = -0.3,
+            color = "black",
+            size = 3.5) +
+  scale_fill_manual(values = c(
+    "Year Before Sep 2001" = "#66a3c2",  # darker pale blue
+    "Year After Sep 2001" = "#e07b7b"    # darker pale red
+  )) +
+  theme_minimal() +
+  labs(title = "Average Monthly Crossings by Type (Year Before vs. After September 2001)",
+       x = "Crossing Type",
+       y = "Average Monthly Crossings") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Print the comparison plot
+print(comparison_plot)
+
+# Prepare monthly totals per period
+monthly_totals2 <- border_periods %>%
+  mutate(Month = floor_date(Date, "month")) %>%
+  group_by(Measure, Period, Month) %>%
+  summarise(Monthly_Total = sum(Value, na.rm = TRUE), .groups = 'drop')
+
+# Get unique Measures
+measures2 <- unique(monthly_totals2$Measure)
+
+```
+
+```{r}
 # Run t-tests for each Measure
-test_results <- lapply(measures, function(m) {
-  test_data <- monthly_totals %>% filter(Measure == m)
+print("T-TEST COMPARING BORDER CROSSINGS BEFORE AND AFTER COVID")
+
+test_results <- lapply(measures1, function(m) {
+  test_data <- monthly_totals1 %>% filter(Measure == m)
   t_out <- t.test(Monthly_Total ~ Period, data = test_data)
   data.frame(
     Measure = m,
@@ -740,12 +789,41 @@ test_summary <- do.call(rbind, test_results)
 print(test_summary)
 
 # Grab significant results
-significant_measures <- test_summary %>%
+march2020significant <- test_summary %>%
   filter(P_Value < 0.05) %>%
   pull(Measure)
 
-# Print only the statistically significant comparisons
-print(significant_measures)
+
+
+# Run t-tests for each Measure
+print("T-TEST COMPARING BORDER CROSSINGS BEFORE AND AFTER 9/11")
+
+test_results <- lapply(measures2, function(m) {
+  test_data <- monthly_totals2 %>% filter(Measure == m)
+  t_out <- t.test(Monthly_Total ~ Period, data = test_data)
+  data.frame(
+    Measure = m,
+    Before_Mean = t_out$estimate[1],
+    After_Mean = t_out$estimate[2],
+    P_Value = t_out$p.value
+  )
+})
+
+# Combine results into a single data frame
+test_summary <- do.call(rbind, test_results)
+
+# Print the test summary
+print(test_summary)
+
+# Grab significant results
+sept2001significant <- test_summary %>%
+  filter(P_Value < 0.05) %>%
+  pull(Measure)
+
+print(march2020significant)
+
+print(sept2001significant)
+
 
 ```
 
