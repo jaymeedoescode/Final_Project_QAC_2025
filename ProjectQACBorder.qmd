@@ -662,7 +662,7 @@ ggplot(univariate_data, aes(x = Measure, y = Percentage, fill = Measure)) +
   theme_minimal() +
   labs(title = "Percentage of Total Traffic Volume by Crossing Type", 
        x = "Crossing Type", y = "Percentage of Total Volume") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size=20), legend.position = "none") +
   scale_y_continuous(labels = scales::percent_format(scale = 1))
 
 # Statistical Test: ANOVA to determine if there are significant differences in traffic volume by crossing type
@@ -703,7 +703,7 @@ comparison_plot <- ggplot(average_summary, aes(x = Measure, y = Average_Monthly,
   labs(title = "Average Monthly Crossings by Type (Year Before vs. After March 2020)",
        x = "Crossing Type",
        y = "Average Monthly Crossings") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size=20))
 
 # Print the comparison plot
 print(comparison_plot)
@@ -751,7 +751,7 @@ comparison_plot <- ggplot(average_summary, aes(x = Measure, y = Average_Monthly,
   labs(title = "Average Monthly Crossings by Type (Year Before vs. After September 2001)",
        x = "Crossing Type",
        y = "Average Monthly Crossings") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size=20))
 
 # Print the comparison plot
 print(comparison_plot)
